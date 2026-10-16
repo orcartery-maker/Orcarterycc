@@ -8,9 +8,20 @@ Open the GitHub Pages demo on your phone or browser:
 
 https://orcartery-maker.github.io/Orcarterycc/
 
+## Android APK build
+
+This repo also includes a GitHub Actions workflow that builds a release APK for Android.
+
+- Workflow: `.github/workflows/flutter-android-apk.yml`
+- Artifact: downloaded from GitHub Actions after a successful run
+- The APK is generated at `build/app/outputs/flutter-apk/app-release.apk`
+
 ## GitHub deployment
 
-This repository is already attached to GitHub and includes a GitHub Actions workflow that builds the Flutter web app and deploys it to GitHub Pages.
+This repository is already attached to GitHub and includes GitHub Actions workflows that build:
+
+- the Flutter web app and deploy it to GitHub Pages
+- the Android APK and upload it as a build artifact
 
 ### Steps to publish the app
 
