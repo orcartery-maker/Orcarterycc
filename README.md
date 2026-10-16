@@ -1,17 +1,51 @@
-# orcullo
+# Orcarterycc
 
-A new Flutter project.
+NEXORA PLAY is a Flutter game platform demo with a game library, profile, developer lab, and arcade-style game pages.
 
-## Getting Started
+## Live phone demo
 
-This project is a starting point for a Flutter application.
+Open the GitHub Pages demo on your phone or browser:
 
-A few resources to get you started if this is your first Flutter project:
+https://orcartery-maker.github.io/Orcarterycc/
 
-- [Learn Flutter](https://docs.flutter.dev/get-started/learn-flutter)
-- [Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Flutter learning resources](https://docs.flutter.dev/reference/learning-resources)
+## GitHub deployment
 
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+This repository is already attached to GitHub and includes a GitHub Actions workflow that builds the Flutter web app and deploys it to GitHub Pages.
+
+### Steps to publish the app
+
+1. Push the current branch to GitHub.
+2. Open your repository on GitHub.
+3. Go to Settings > Pages.
+4. Set Source to GitHub Actions.
+5. Wait for the workflow to finish.
+6. The Pages URL will become available at the link above.
+
+### Local run
+
+```bash
+flutter pub get
+flutter run
+```
+
+### Web build
+
+```bash
+flutter build web --release
+```
+
+## Repository notes
+
+- App entry: `lib/main.dart`
+- Core theme: `lib/app.dart`
+- Game screens: `lib/gamepages/`
+- Services: `lib/services/`
+- Models: `lib/models/`
+
+## GitHub Actions workflow
+
+The workflow file is:
+
+- `.github/workflows/flutter-web-pages.yml`
+
+This workflow builds the app and deploys it automatically to GitHub Pages whenever changes are pushed to `main`.
