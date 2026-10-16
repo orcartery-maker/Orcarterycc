@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+
 import '../models/game_info.dart';
+import '../services/game_repository.dart';
 import '../widgets/game_card.dart';
 
 class DeveloperLabPage extends StatefulWidget {
@@ -19,25 +21,35 @@ class DeveloperLabPage extends StatefulWidget {
 }
 
 class _DeveloperLabPageState extends State<DeveloperLabPage> {
+  final GameRepository _repository = GameRepository();
+  final TextEditingController _titleController = TextEditingController();
+  final TextEditingController _descriptionController = TextEditingController();
+  final TextEditingController _categoryController = TextEditingController();
+  final TextEditingController _emojiController = TextEditingController();
+
   bool developerMode = false;
   bool aiOpponent = false;
   String difficulty = 'Normal';
   int maxPlayers = 2;
-  final TextEditingController _notesController = TextEditingController();
-  final List<String> savedPresets = [];
+  GameInfo? _editingPreset;
+
+  List<GameInfo> get savedPresets => _repository.getAllGames();
 
   @override
   void dispose() {
-    _notesController.dispose();
+    _titleController.dispose();
+    _descriptionController.dispose();
+    _categoryController.dispose();
+    _emojiController.dispose();
     super.dispose();
   }
 
-  Future<void> _deletePreset(String preset) async {
+  Future<void> _deletePreset(GameInfo preset) async {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('Delete preset?'),
-        content: Text('Delete "$preset"?'),
+        content: Text('Delete "${preset.title}"?'),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
@@ -52,26 +64,72 @@ class _DeveloperLabPageState extends State<DeveloperLabPage> {
     );
 
     if (confirmed == true && mounted) {
-      setState(() => savedPresets.remove(preset));
+      _repository.deleteGame(preset.id);
+      if (_editingPreset?.id == preset.id) {
+        _clearForm();
+      }
+      setState(() {});
     }
   }
 
-  void _savePreset() {
-    final name = _notesController.text.trim();
+  void _clearForm() {
+    _editingPreset = null;
+    _titleController.clear();
+    _descriptionController.clear();
+    _categoryController.clear();
+    _emojiController.clear();
+  }
 
-    if (name.isEmpty) {
+  void _editPreset(GameInfo preset) {
+    setState(() {
+      _editingPreset = preset;
+      _titleController.text = preset.title;
+      _descriptionController.text = preset.description;
+      _categoryController.text = preset.category;
+      _emojiController.text = preset.emoji;
+    });
+  }
+
+  void _savePreset() {
+    final title = _titleController.text.trim();
+    final description = _descriptionController.text.trim();
+    final category = _categoryController.text.trim();
+    final emoji = _emojiController.text.trim().isEmpty
+        ? '🎮'
+        : _emojiController.text.trim();
+
+    if (title.isEmpty || description.isEmpty || category.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Enter preset notes first.')),
+        const SnackBar(
+          content: Text('Title, description and category are required.'),
+        ),
       );
       return;
     }
 
-    setState(() => savedPresets.add(name));
-    _notesController.clear();
-
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Preset saved for this session.')),
+    final preset = GameInfo(
+      id: _editingPreset?.id ?? '',
+      title: title,
+      description: description,
+      category: category,
+      emoji: emoji,
     );
+
+    if (_editingPreset == null) {
+      _repository.createGame(preset);
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Preset created successfully.')),
+      );
+    } else {
+      _repository.updateGame(preset);
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Preset updated successfully.')),
+      );
+    }
+
+    setState(() {
+      _clearForm();
+    });
   }
 
   @override
@@ -98,10 +156,8 @@ class _DeveloperLabPageState extends State<DeveloperLabPage> {
         ),
         const SizedBox(height: 8),
         DropdownButtonFormField<String>(
-          value: difficulty,
-          decoration: const InputDecoration(
-            border: OutlineInputBorder(),
-          ),
+          initialValue: difficulty,
+          decoration: const InputDecoration(border: OutlineInputBorder()),
           items: const [
             DropdownMenuItem(value: 'Easy', child: Text('Easy')),
             DropdownMenuItem(value: 'Normal', child: Text('Normal')),
@@ -119,27 +175,70 @@ class _DeveloperLabPageState extends State<DeveloperLabPage> {
           max: 4,
           divisions: 3,
           label: '$maxPlayers',
-          onChanged: (value) =>
-              setState(() => maxPlayers = value.round()),
+          onChanged: (value) => setState(() => maxPlayers = value.round()),
         ),
         const Divider(),
-        const Text(
-          'Save Developer Preset',
-          style: TextStyle(fontWeight: FontWeight.bold),
+        Text(
+          _editingPreset == null
+              ? 'Create Custom Preset'
+              : 'Edit Custom Preset',
+          style: const TextStyle(fontWeight: FontWeight.bold),
         ),
         const SizedBox(height: 8),
         TextField(
-          controller: _notesController,
-          maxLength: 80,
+          controller: _titleController,
           decoration: const InputDecoration(
-            labelText: 'Preset name or notes',
+            labelText: 'Title',
             border: OutlineInputBorder(),
           ),
         ),
-        FilledButton.icon(
-          onPressed: _savePreset,
-          icon: const Icon(Icons.save),
-          label: const Text('Save Preset'),
+        const SizedBox(height: 12),
+        TextField(
+          controller: _descriptionController,
+          maxLines: 3,
+          decoration: const InputDecoration(
+            labelText: 'Description',
+            border: OutlineInputBorder(),
+          ),
+        ),
+        const SizedBox(height: 12),
+        TextField(
+          controller: _categoryController,
+          decoration: const InputDecoration(
+            labelText: 'Category',
+            border: OutlineInputBorder(),
+          ),
+        ),
+        const SizedBox(height: 12),
+        TextField(
+          controller: _emojiController,
+          maxLength: 2,
+          decoration: const InputDecoration(
+            labelText: 'Emoji',
+            border: OutlineInputBorder(),
+          ),
+        ),
+        const SizedBox(height: 12),
+        Row(
+          children: [
+            Expanded(
+              child: FilledButton.icon(
+                onPressed: _savePreset,
+                icon: const Icon(Icons.save),
+                label: Text(
+                  _editingPreset == null ? 'Create Preset' : 'Update Preset',
+                ),
+              ),
+            ),
+            if (_editingPreset != null) ...[
+              const SizedBox(width: 8),
+              OutlinedButton.icon(
+                onPressed: _clearForm,
+                icon: const Icon(Icons.cancel),
+                label: const Text('Cancel'),
+              ),
+            ],
+          ],
         ),
         if (savedPresets.isNotEmpty) ...[
           const SizedBox(height: 12),
@@ -148,12 +247,30 @@ class _DeveloperLabPageState extends State<DeveloperLabPage> {
             style: TextStyle(fontWeight: FontWeight.bold),
           ),
           ...savedPresets.map(
-            (preset) => ListTile(
-              title: Text(preset),
-              trailing: IconButton(
-                tooltip: 'Delete preset',
-                icon: const Icon(Icons.delete_outline),
-                onPressed: () => _deletePreset(preset),
+            (preset) => Card(
+              child: ListTile(
+                leading: Text(
+                  preset.emoji,
+                  style: const TextStyle(fontSize: 28),
+                ),
+                title: Text(preset.title),
+                subtitle: Text('${preset.category} • ${preset.description}'),
+                trailing: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    IconButton(
+                      tooltip: 'Edit preset',
+                      icon: const Icon(Icons.edit_outlined),
+                      onPressed: () => _editPreset(preset),
+                    ),
+                    IconButton(
+                      tooltip: 'Delete preset',
+                      icon: const Icon(Icons.delete_outline),
+                      onPressed: () => _deletePreset(preset),
+                    ),
+                  ],
+                ),
+                onTap: () => widget.onLaunchGame(preset),
               ),
             ),
           ),
@@ -164,10 +281,8 @@ class _DeveloperLabPageState extends State<DeveloperLabPage> {
           style: TextStyle(fontWeight: FontWeight.bold),
         ),
         ...widget.offlineGames.map(
-          (game) => GameCard(
-            game: game,
-            onTap: () => widget.onLaunchGame(game),
-          ),
+          (game) =>
+              GameCard(game: game, onTap: () => widget.onLaunchGame(game)),
         ),
       ],
     );

@@ -1,30 +1,60 @@
-// This is a basic Flutter widget test.
-//
-// To perform an interaction with a widget in your test, use the WidgetTester
-// utility in the flutter_test package. For example, you can send tap and scroll
-// gestures. You can also use WidgetTester to find child widgets in the widget
-// tree, read text, and verify that the values of widget properties are correct.
-
-import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-import 'package:orcullo/main.dart';
+import 'package:orcullo/models/game_info.dart';
+import 'package:orcullo/services/game_repository.dart';
 
 void main() {
-  testWidgets('Counter increments smoke test', (WidgetTester tester) async {
-    // Build our app and trigger a frame.
-    await tester.pumpWidget(const MyApp());
+  group('GameRepository CRUD', () {
+    late GameRepository repository;
 
-    // Verify that our counter starts at 0.
-    expect(find.text('0'), findsOneWidget);
-    expect(find.text('1'), findsNothing);
+    setUp(() {
+      repository = GameRepository();
+    });
 
-    // Tap the '+' icon and trigger a frame.
-    await tester.tap(find.byIcon(Icons.add));
-    await tester.pump();
+    test('create, read, update and delete a game preset', () {
+      final created = repository.createGame(
+        GameInfo(
+          title: 'Custom Quest',
+          description: 'A puzzle challenge',
+          category: 'Puzzle',
+          emoji: '🧩',
+        ),
+      );
 
-    // Verify that our counter has incremented.
-    expect(find.text('0'), findsNothing);
-    expect(find.text('1'), findsOneWidget);
+      expect(created.id, isNotEmpty);
+      expect(repository.getAllGames(), hasLength(1));
+
+      final updated = repository.updateGame(
+        created.copyWith(description: 'A new puzzle challenge'),
+      );
+
+      expect(updated.description, 'A new puzzle challenge');
+      expect(
+        repository.getGameById(created.id)?.description,
+        'A new puzzle challenge',
+      );
+
+      repository.deleteGame(created.id);
+      expect(repository.getAllGames(), isEmpty);
+    });
+
+    test('GameInfo supports JSON conversion and copyWith', () {
+      final game = GameInfo(
+        id: 'game-1',
+        title: 'Arcade Rush',
+        description: 'Tap to win',
+        category: 'Arcade',
+        emoji: '🎮',
+        isOnline: true,
+      );
+
+      final json = game.toJson();
+      final roundTrip = GameInfo.fromJson(json);
+
+      expect(roundTrip.id, 'game-1');
+      expect(roundTrip.title, 'Arcade Rush');
+      expect(roundTrip.isOnline, isTrue);
+      expect(roundTrip.copyWith(title: 'Arcade Blast').title, 'Arcade Blast');
+    });
   });
 }
